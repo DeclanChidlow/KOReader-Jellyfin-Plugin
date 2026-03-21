@@ -67,6 +67,24 @@ function UI:configureServer()
 	input_dialog:onShowKeyboard()
 end
 
+function UI:handleApiError(error_code, default_msg)
+	if error_code == 401 then
+		logger.info("Jellyfin: Encountered 401 Unauthorised, clearing auth.")
+		self.config:clearAuth()
+		UIManager:show(ConfirmBox:new {
+			text = _("Your session is invalid or has expired.\n\nPlease log in again from the Jellyfin plugin's menu."),
+		})
+	elseif error_code == "parse_error" then
+		UIManager:show(InfoMessage:new {
+			text = _("Failed to parse server response."),
+		})
+	else
+		UIManager:show(InfoMessage:new {
+			text = T(_("%1 (code %2)"), default_msg, error_code),
+		})
+	end
+end
+
 function UI:browseBooks()
 	NetworkMgr:runWhenOnline(function()
 		self:getBookLibraries()
@@ -89,18 +107,18 @@ function UI:getBookLibraries()
 	local success, result = self.api:getUserViews()
 
 	if success then
-		logger.info("Jellyfin UI: Response has", #result.Items, "total items")
+		logger.info("Jellyfin: Response has", #result.Items, "total items")
 
 		local book_libraries = {}
 
 		for _, item in ipairs(result.Items) do
-			logger.info("Jellyfin UI: Found library:", item.Name, "Type:", item.CollectionType or "none")
+			logger.info("Jellyfin: Found library:", item.Name, "Type:", item.CollectionType or "none")
 			if item.CollectionType == "books" then
 				table.insert(book_libraries, item)
 			end
 		end
 
-		logger.info("Jellyfin UI: Found", #book_libraries, "book libraries")
+		logger.info("Jellyfin: Found", #book_libraries, "book libraries")
 
 		if #book_libraries == 0 then
 			UIManager:show(InfoMessage:new {
@@ -110,7 +128,7 @@ function UI:getBookLibraries()
 			self:showLibrariesMenu(book_libraries)
 		end
 	else
-		logger.err("Jellyfin UI: Get libraries failed:", result)
+		logger.err("Jellyfin: Get libraries failed:", result)
 		if result == "parse_error" then
 			UIManager:show(InfoMessage:new {
 				text = _("Failed to parse server response"),
@@ -124,20 +142,20 @@ function UI:getBookLibraries()
 end
 
 function UI:showLibrariesMenu(libraries)
-	logger.info("Jellyfin UI: Showing libraries menu with", #libraries, "libraries")
+	logger.info("Jellyfin: Showing libraries menu with", #libraries, "libraries")
 
 	self.current_libraries = libraries
 
 	local items = {}
 
 	for i, lib in ipairs(libraries) do
-		logger.info("Jellyfin UI: Adding library to menu:", lib.Name, "ID:", lib.Id)
+		logger.info("Jellyfin: Adding library to menu:", lib.Name, "ID:", lib.Id)
 		table.insert(items, {
 			text = lib.Name,
 		})
 	end
 
-	logger.info("Jellyfin UI: Creating menu with", #items, "items")
+	logger.info("Jellyfin: Creating menu with", #items, "items")
 
 	local menu
 	menu = Menu:new {
@@ -147,12 +165,12 @@ function UI:showLibrariesMenu(libraries)
 		is_popout = false,
 		title_bar_fm_style = true,
 		onMenuChoice = function(_, choice)
-			logger.info("Jellyfin UI: Menu choice:", choice.text)
+			logger.info("Jellyfin: Menu choice:", choice.text)
 			UIManager:close(menu)
 
 			for _, lib in ipairs(self.current_libraries) do
 				if lib.Name == choice.text then
-					logger.info("Jellyfin UI: Library selected:", lib.Name, "ID:", lib.Id)
+					logger.info("Jellyfin: Library selected:", lib.Name, "ID:", lib.Id)
 					self:showBooksInLibrary(lib.Id, lib.Name)
 					break
 				end
@@ -160,12 +178,12 @@ function UI:showLibrariesMenu(libraries)
 		end,
 	}
 
-	logger.info("Jellyfin UI: Showing menu")
+	logger.info("Jellyfin: Showing menu")
 	UIManager:show(menu)
 end
 
 function UI:showBooksInLibrary(library_id, library_name)
-	logger.info("Jellyfin UI: showBooksInLibrary called with ID:", library_id, "Name:", library_name)
+	logger.info("Jellyfin: showBooksInLibrary called with ID:", library_id, "Name:", library_name)
 
 	UIManager:show(InfoMessage:new {
 		text = _("Loading books..."),
@@ -175,7 +193,7 @@ function UI:showBooksInLibrary(library_id, library_name)
 	local success, result = self.api:getItemsInLibrary(library_id)
 
 	if success then
-		logger.info("Jellyfin UI: Found", result.TotalRecordCount, "books")
+		logger.info("Jellyfin: Found", result.TotalRecordCount, "books")
 
 		if result.TotalRecordCount == 0 then
 			UIManager:show(InfoMessage:new {
@@ -185,21 +203,13 @@ function UI:showBooksInLibrary(library_id, library_name)
 			self:showBooksMenu(result.Items, library_name)
 		end
 	else
-		logger.err("Jellyfin UI: Get books failed:", result)
-		if result == "parse_error" then
-			UIManager:show(InfoMessage:new {
-				text = _("Failed to parse server response"),
-			})
-		else
-			UIManager:show(InfoMessage:new {
-				text = T(_("Failed to load books (code %1)"), result),
-			})
-		end
+		logger.err("Jellyfin: Get books failed:", result)
+		self:handleApiError(result, _("Failed to load books"))
 	end
 end
 
 function UI:showBooksMenu(books, library_name)
-	logger.info("Jellyfin UI: Showing books menu with", #books, "books")
+	logger.info("Jellyfin: Showing books menu with", #books, "books")
 
 	self.current_books = books
 
@@ -212,7 +222,7 @@ function UI:showBooksMenu(books, library_name)
 		})
 	end
 
-	logger.info("Jellyfin UI: Creating books menu with", #items, "items")
+	logger.info("Jellyfin: Creating books menu with", #items, "items")
 
 	local menu
 	menu = Menu:new {
@@ -227,7 +237,7 @@ function UI:showBooksMenu(books, library_name)
 			local book_name = choice.text:gsub(" ✓$", "")
 			for _, book in ipairs(self.current_books) do
 				if book.Name == book_name then
-					logger.info("Jellyfin UI: Book selected:", book.Name)
+					logger.info("Jellyfin: Book selected:", book.Name)
 					self:showBookActions(book)
 					break
 				end
@@ -239,7 +249,7 @@ function UI:showBooksMenu(books, library_name)
 end
 
 function UI:showBookActions(book)
-	logger.info("Jellyfin UI: Showing actions for book:", book.Name)
+	logger.info("Jellyfin: Showing actions for book:", book.Name)
 
 	local is_played = book.UserData and book.UserData.Played
 
@@ -281,7 +291,7 @@ function UI:showBookActions(book)
 end
 
 function UI:downloadBook(book)
-	logger.info("Jellyfin UI: Starting download for book:", book.Name, "ID:", book.Id)
+	logger.info("Jellyfin: Starting download for book:", book.Name, "ID:", book.Id)
 
 	NetworkMgr:runWhenOnline(function()
 		local extension = ".epub"
@@ -317,16 +327,14 @@ function UI:downloadBook(book)
 				end,
 			})
 		else
-			logger.err("Jellyfin UI: Download failed:", error)
-			UIManager:show(InfoMessage:new {
-				text = T(_("Download failed (code %1)"), error),
-			})
+			logger.err("Jellyfin: Update status failed:", error)
+			self:handleApiError(error, _("Failed to update status"))
 		end
 	end)
 end
 
 function UI:toggleReadStatus(book)
-	logger.info("Jellyfin UI: Toggling read status for book:", book.Name)
+	logger.info("Jellyfin: Toggling read status for book:", book.Name)
 
 	NetworkMgr:runWhenOnline(function()
 		local is_played = book.UserData and book.UserData.Played
@@ -343,7 +351,7 @@ function UI:toggleReadStatus(book)
 				text = is_played and _("Marked as unread") or _("Marked as read"),
 			})
 		else
-			logger.err("Jellyfin UI: Update status failed:", error)
+			logger.err("Jellyfin: Update status failed:", error)
 			UIManager:show(InfoMessage:new {
 				text = T(_("Failed to update status (code %1)"), error),
 			})
