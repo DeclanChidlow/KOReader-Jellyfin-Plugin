@@ -19,13 +19,11 @@ This plugin isn't endorsed by Jellyfin or KOReader.
 
 ## Features
 
-- **Server Configuration**: Connect to your own Jellyfin server
-- **Authentication**:
-  - Login with username and password
-  - Login with Quick Connect
-- **Browse Books**: View all books in your Jellyfin libraries
-- **Download Books**: Download books directly to your device
-- **Mark as Read/Unread**: Update your reading status in Jellyfin
+- **Server Configuration**: Connect to your own Jellyfin server.
+- **Authentication**: Login with username and password or via Quick Connect.
+- **Browse Books**: View all books in your Jellyfin libraries. Filter, sort, and view details of your books before you read them.
+- **Download Books**: Download books directly to your device.
+- **Progress Syncing**: Your progress will sync between KOReader and your Jellyfin server.
 
 ## Installation
 
@@ -47,12 +45,5 @@ This plugin isn't endorsed by Jellyfin or KOReader.
 2. Select a library.
 3. Choose a book.
 4. Select 'Download' to download the book.
-5. You'll be prompted to open the book immediately or find it later in your downloads folder (`koreader/books/`).
 
-### Mark a Book as Read/Unread
-
-1. In the Jellyfin plugin's menu under tools, select 'Browse Books'.
-2. Select a library.
-3. Choose a book.
-4. Select 'Mark as Read' or 'Mark as Unread'.
-5. The status will be updated on your Jellyfin server.
+You can configure the download location in the plugin's menu.

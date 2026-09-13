@@ -1,13 +1,7 @@
---[[--
-Jellyfin API client
-@module koplugin.jellyfin.api
-]]
-
 local http = require("socket.http")
 local ltn12 = require("ltn12")
 local logger = require("logger")
 
--- JSON library with fallback
 local json
 local ok = pcall(function() json = require("json") end)
 if not ok then
@@ -172,7 +166,7 @@ function API:getItemsInLibrary(library_id)
 	local items_url = self.config:getServerUrl() .. "/Users/" .. self.config:getUserId() .. "/Items" ..
 		"?ParentId=" .. library_id ..
 		"&Recursive=true" ..
-		"&Fields=Path,MediaSources" ..
+		"&Fields=Path,MediaSources,People,Genres,Overview" ..
 		"&IncludeItemTypes=Book"
 
 	logger.info("Jellyfin API: Fetching items from:", items_url)
@@ -198,6 +192,36 @@ function API:getItemsInLibrary(library_id)
 		end
 	else
 		return false, code
+	end
+end
+
+function API:downloadBookCover(item_id, filepath)
+	local cover_url = self.config:getServerUrl() .. "/Items/" .. item_id ..
+		"/Images/Primary?maxWidth=320&format=Jpg"
+
+	local file = io.open(filepath, "wb")
+	if not file then
+		return false
+	end
+
+	local res, code = http.request {
+		url = cover_url,
+		method = "GET",
+		headers = {
+			["Authorization"] = self:getAuthHeader(),
+		},
+		sink = ltn12.sink.file(file),
+	}
+
+	if io.type(file) == "file" then
+		file:close()
+	end
+
+	if code == 200 then
+		return true
+	else
+		os.remove(filepath)
+		return false
 	end
 end
 
@@ -252,6 +276,54 @@ function API:setPlayedStatus(item_id, played)
 	}
 
 	return code == 200, code
+end
+
+function API:getItemUserData(item_id)
+	local userdata_url = self.config:getServerUrl() .. "/UserItems/" .. item_id .. "/UserData"
+	local response_body = {}
+
+	local res, code = http.request {
+		url = userdata_url,
+		method = "GET",
+		headers = {
+			["Authorization"] = self:getAuthHeader(),
+		},
+		sink = ltn12.sink.table(response_body),
+	}
+
+	if code == 200 then
+		local ok, response = pcall(json.decode, table.concat(response_body))
+		if ok then
+			return true, response
+		else
+			return false, "parse_error"
+		end
+	else
+		return false, code
+	end
+end
+
+function API:reportProgress(item_id, percent)
+	local progress_url = self.config:getServerUrl() .. "/Sessions/Playing/Progress"
+	local progress_data = json.encode({
+		ItemId = item_id,
+		PositionTicks = math.floor(percent * 10000000),
+		IsPaused = false,
+	})
+
+	local res, code = http.request {
+		url = progress_url,
+		method = "POST",
+		headers = {
+			["Content-Type"] = "application/json",
+			["Content-Length"] = tostring(#progress_data),
+			["Authorization"] = self:getAuthHeader(),
+		},
+		source = ltn12.source.string(progress_data),
+		sink = ltn12.sink.table({}),
+	}
+
+	return code == 204 or code == 200, code
 end
 
 return API

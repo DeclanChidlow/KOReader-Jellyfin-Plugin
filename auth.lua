@@ -1,8 +1,3 @@
---[[--
-Jellyfin authentication handlers
-@module koplugin.jellyfin.auth
-]]
-
 local ButtonDialog = require("ui/widget/buttondialog")
 local InfoMessage = require("ui/widget/infomessage")
 local MultiInputDialog = require("ui/widget/multiinputdialog")
