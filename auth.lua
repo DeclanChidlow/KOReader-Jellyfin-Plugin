@@ -131,6 +131,7 @@ function Auth:initiateQuickConnect()
 end
 
 function Auth:showQuickConnectCode(code, secret)
+	local cancelled = false
 	local button_dialog
 	button_dialog = ButtonDialog:new {
 		title = T(_("Enter this code in Jellyfin:\n\n%1\n\nWaiting for authorisation..."), code),
@@ -139,6 +140,7 @@ function Auth:showQuickConnectCode(code, secret)
 				{
 					text = _("Cancel"),
 					callback = function()
+						cancelled = true
 						UIManager:close(button_dialog)
 					end,
 				},
@@ -147,10 +149,16 @@ function Auth:showQuickConnectCode(code, secret)
 	}
 	UIManager:show(button_dialog)
 
-	self:pollQuickConnect(secret, button_dialog)
+	self:pollQuickConnect(secret, button_dialog, function()
+		return not cancelled
+	end)
 end
 
-function Auth:pollQuickConnect(secret, dialog)
+function Auth:pollQuickConnect(secret, dialog, is_active)
+	if not is_active() then
+		return
+	end
+
 	local success, result = self.api:checkQuickConnect(secret)
 
 	if success then
@@ -159,9 +167,7 @@ function Auth:pollQuickConnect(secret, dialog)
 			self:completeQuickConnect(secret)
 		else
 			UIManager:scheduleIn(2, function()
-				if dialog then
-					self:pollQuickConnect(secret, dialog)
-				end
+				self:pollQuickConnect(secret, dialog, is_active)
 			end)
 		end
 	else

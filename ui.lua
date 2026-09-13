@@ -78,9 +78,13 @@ function UI:handleApiError(error_code, default_msg)
 		UIManager:show(InfoMessage:new {
 			text = _("Failed to parse server response."),
 		})
-	else
+	elseif error_code then
 		UIManager:show(InfoMessage:new {
 			text = T(_("%1 (code %2)"), default_msg, error_code),
+		})
+	else
+		UIManager:show(InfoMessage:new {
+			text = default_msg,
 		})
 	end
 end
@@ -327,8 +331,8 @@ function UI:downloadBook(book)
 				end,
 			})
 		else
-			logger.err("Jellyfin: Update status failed:", error)
-			self:handleApiError(error, _("Failed to update status"))
+			logger.err("Jellyfin: Download failed:", error)
+			self:handleApiError(error, _("Failed to download book"))
 		end
 	end)
 end
@@ -352,9 +356,7 @@ function UI:toggleReadStatus(book)
 			})
 		else
 			logger.err("Jellyfin: Update status failed:", error)
-			UIManager:show(InfoMessage:new {
-				text = T(_("Failed to update status (code %1)"), error),
-			})
+			self:handleApiError(error, _("Failed to update status"))
 		end
 	end)
 end

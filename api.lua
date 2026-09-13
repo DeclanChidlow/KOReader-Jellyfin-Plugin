@@ -203,8 +203,9 @@ end
 
 function API:downloadItem(item_id, filepath)
 	local download_url = self.config:getServerUrl() .. "/Items/" .. item_id .. "/Download"
+	local temp_path = filepath .. ".part"
 
-	local file = io.open(filepath, "wb")
+	local file = io.open(temp_path, "wb")
 	if not file then
 		return false, "file_error"
 	end
@@ -223,9 +224,15 @@ function API:downloadItem(item_id, filepath)
 	end
 
 	if code == 200 then
+		local ok, rename_err = os.rename(temp_path, filepath)
+		if not ok then
+			logger.err("Jellyfin API: Failed to move downloaded file into place:", rename_err)
+			os.remove(temp_path)
+			return false, "file_error"
+		end
 		return true
 	else
-		os.remove(filepath)
+		os.remove(temp_path)
 		return false, code
 	end
 end
