@@ -35,16 +35,50 @@ function Jellyfin:shouldSyncProgress()
 	return Config:isLoggedIn() and Config:getSyncEnabled()
 end
 
+local DataStorage = require("datastorage")
+
+local function absolutePath(path)
+    if type(path) ~= "string" then
+        return nil
+    end
+
+    if path:sub(1, 1) ~= "/" then
+        path = DataStorage:getFullDataDir() .. "/" .. path
+    end
+
+    return FFIUtil.realpath(path)
+end
+
 function Jellyfin:getMappedBook()
-	local file = self.ui and self.ui.document and self.ui.document.file
-	if not file then
+    local file = self.ui and self.ui.document
+        and self.ui.document.file
+
+    if not file then
+        return nil
+    end
+
+    local book_map = Config:getBookMap()
+
+    -- Preserve existing exact-path mappings.
+    if book_map[file] then
+        return book_map[file]
+    end
+
+    -- Support relative paths saved by older plugin versions.
+    local absolute_file = absolutePath(file)
+
+    if not absolute_file then
 		return nil
 	end
-	local entry = Config:getBookMap()[file]
-	if entry then
-		return entry
+
+	for path, entry in pairs(book_map) do
+		local mapped_path = absolutePath(path)
+		if mapped_path and mapped_path == absolute_file then
+			return entry
+		end
 	end
-	return nil
+
+    return nil
 end
 
 function Jellyfin:getLocalProgress()
