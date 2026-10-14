@@ -67,11 +67,16 @@ function Jellyfin:getMappedBook()
     -- Support relative paths saved by older plugin versions.
     local absolute_file = absolutePath(file)
 
-    for path, entry in pairs(book_map) do
-        if absolutePath(path) == absolute_file then
-            return entry
-        end
-    end
+    if not absolute_file then
+		return nil
+	end
+
+	for path, entry in pairs(book_map) do
+		local mapped_path = absolutePath(path)
+		if mapped_path and mapped_path == absolute_file then
+			return entry
+		end
+	end
 
     return nil
 end
