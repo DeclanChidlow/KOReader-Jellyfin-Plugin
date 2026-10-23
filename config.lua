@@ -64,7 +64,8 @@ end
 function Config:getDownloadDir()
 	local dir = G_reader_settings:readSetting("jellyfin_download_dir")
 	if not dir or dir == "" then
-		return DataStorage:getDataDir() .. "/books/"
+		local data_dir = DataStorage:getFullDataDir() or DataStorage:getDataDir()
+		return data_dir .. "/books/"
 	end
 	return dir
 end

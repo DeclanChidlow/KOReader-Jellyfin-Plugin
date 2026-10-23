@@ -924,7 +924,12 @@ function UI:downloadBook(book)
 
 		util.makePath(download_dir)
 
+		-- Record an absolute path so the book-map key also matches when KOReader reopens the book via the file manager or history.
 		local filepath = download_dir .. filename
+		local absolute_dir = FFIUtil.realpath(download_dir)
+		if absolute_dir then
+			filepath = absolute_dir .. "/" .. filename
+		end
 
 		UIManager:show(InfoMessage:new {
 			text = T(_("Downloading %1..."), book.Name),
