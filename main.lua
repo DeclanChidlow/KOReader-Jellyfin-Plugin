@@ -2,6 +2,7 @@ local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local ConfirmBox = require("ui/widget/confirmbox")
 local NetworkMgr = require("ui/network/manager")
 local UIManager = require("ui/uimanager")
+local DataStorage = require("datastorage")
 local FFIUtil = require("ffi/util")
 local logger = require("logger")
 local _ = require("gettext")
@@ -35,16 +36,63 @@ function Jellyfin:shouldSyncProgress()
 	return Config:isLoggedIn() and Config:getSyncEnabled()
 end
 
+local function absolutePath(path)
+	if type(path) ~= "string" then
+		return nil
+	end
+
+	if path:sub(1, 1) ~= "/" then
+		local data_dir = DataStorage:getFullDataDir()
+		if not data_dir then
+			return nil
+		end
+		path = data_dir .. "/" .. path
+	end
+
+	return FFIUtil.realpath(path)
+end
+
 function Jellyfin:getMappedBook()
 	local file = self.ui and self.ui.document and self.ui.document.file
 	if not file then
 		return nil
 	end
-	local entry = Config:getBookMap()[file]
+
+	local book_map = Config:getBookMap()
+
+	-- Preserve existing exact-path mappings.
+	local entry = book_map[file]
 	if entry then
 		return entry
 	end
-	return nil
+
+	-- Support relative paths saved by v1.2.0 or lower or custom download folders.
+	local absolute_file = absolutePath(file)
+	if not absolute_file then
+		return nil
+	end
+
+	local matched_path
+	for path, candidate in pairs(book_map) do
+		local mapped_path = absolutePath(path)
+		if mapped_path and mapped_path == absolute_file then
+			matched_path = path
+			entry = candidate
+			break
+		end
+	end
+
+	if not entry then
+		return nil
+	end
+
+	if matched_path ~= absolute_file then
+		book_map[matched_path] = nil
+		book_map[absolute_file] = entry
+		Config:setBookMap(book_map)
+	end
+
+	return entry
 end
 
 function Jellyfin:getLocalProgress()
@@ -214,7 +262,8 @@ function Jellyfin:onReaderReady()
 	end
 
 	local percent = math.min(100, math.max(1, math.floor(server_progress * 100)))
-	logger.info("Jellyfin: Server progress for", entry.name, "is", percent, "% (local:", math.floor(local_progress * 100), "%)")
+	logger.info("Jellyfin: Server progress for", entry.name, "is", percent, "% (local:", math.floor(local_progress * 100),
+		"%)")
 
 	UIManager:show(ConfirmBox:new {
 		text = T(_("Resume reading %1 at %2% from your Jellyfin position?"), entry.name, percent),
