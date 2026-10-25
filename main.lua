@@ -9,6 +9,7 @@ local _ = require("gettext")
 local T = FFIUtil.template
 
 local Config = require("config")
+local QuickTab = require("quicktab")
 local API = require("api")
 local Auth = require("auth")
 local UI = require("ui")
@@ -22,6 +23,7 @@ function Jellyfin:init()
 	logger.info("Jellyfin: Initialising plugin")
 
 	Config:initialize()
+	self.quicktab_icon_available = QuickTab.installIcon()
 	self.api = API:new(Config)
 	self.auth = Auth:new(Config, self.api)
 	self.ui_handler = UI:new(Config, self.api)
@@ -346,8 +348,19 @@ function Jellyfin:addToMainMenu(menu_items)
 					self.auth:logout()
 				end,
 			},
+			{
+				text = _("Enable Jellyfin QuickTab (restart required)"),
+				checked_func = function()
+					return Config:getQuickTabEnabled()
+				end,
+				keep_menu_open = true,
+				callback = function()
+					Config:setQuickTabEnabled(not Config:getQuickTabEnabled())
+				end,
+			},
 		},
 	}
+	QuickTab.addToMainMenu(menu_items, Config, self.quicktab_icon_available)
 end
 
 return Jellyfin
