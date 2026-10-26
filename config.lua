@@ -61,12 +61,12 @@ function Config:setSyncEnabled(enabled)
 	G_reader_settings:saveSetting("jellyfin_sync_progress", enabled)
 end
 
-function Config:getQuickTabEnabled()
-    return G_reader_settings:isTrue("jellyfin_quicktab_enabled")
+function Config:getTopMenuTabEnabled()
+    return G_reader_settings:isTrue("jellyfin_top_menu_tab_enabled")
 end
 
-function Config:setQuickTabEnabled(enabled)
-    G_reader_settings:saveSetting("jellyfin_quicktab_enabled", enabled)
+function Config:setTopMenuTabEnabled(enabled)
+    G_reader_settings:saveSetting("jellyfin_top_menu_tab_enabled", enabled)
 end
 
 function Config:getDownloadDir()
@@ -132,8 +132,8 @@ function Config:initialize()
 	if not G_reader_settings:has("jellyfin_sync_progress") then
 		G_reader_settings:saveSetting("jellyfin_sync_progress", true)
 	end
-	if not G_reader_settings:has("jellyfin_quicktab_enabled") then
-		G_reader_settings:saveSetting("jellyfin_quicktab_enabled", false)
+	if not G_reader_settings:has("jellyfin_top_menu_tab_enabled") then
+		G_reader_settings:saveSetting("jellyfin_top_menu_tab_enabled", false)
 	end
 	if not G_reader_settings:has("jellyfin_book_sort") then
 		G_reader_settings:saveSetting("jellyfin_book_sort", "title")

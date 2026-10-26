@@ -39,23 +39,6 @@ This plugin isn't endorsed by Jellyfin or KOReader.
 2. Select 'Configure Server', enter your server address (with protocol), and press 'Save'.
 3. Select 'Login' and authenticate via either username and password or Quick Connect.
 
-### Optional QuickTab
-
-For faster access to Jellyfin from KOReader's file browser:
-
-1. Open **Tools → Jellyfin**.
-2. Enable **Jellyfin QuickTab**.
-3. Restart KOReader.
-
-A dedicated Jellyfin tab will appear in the file browser's top menu, with **Browse Books** listed first. The full Jellyfin menu remains available under Tools.
-
-To disable QuickTab, uncheck the same option and restart KOReader.
-
-QuickTab is disabled by default. No separate user patch or manual icon installation is required.
-
-**Custom menu layouts:** If you use a custom `filemanager_menu_order.lua`, add `"jellyfin_quicktab"` to its `["KOMenu:menu_buttons"]` list. Otherwise, your custom menu order may hide the QuickTab even when it is enabled.
-
-
 ### Browse and Download Books
 
 1. In the Jellyfin plugin's menu under tools, select 'Browse Books'.
@@ -64,3 +47,13 @@ QuickTab is disabled by default. No separate user patch or manual icon installat
 4. Select 'Download' to download the book.
 
 You can configure the download location in the plugin's menu.
+
+### Top Menu Tab
+
+You can add the plugin as a tab in the top menu for quick access.
+
+1. Open **Tools → Jellyfin**.
+2. Tick **Show plugin on top menu**.
+3. Choose **Restart now** when prompted.
+
+**Custom menu layouts:** If you use a custom `filemanager_menu_order.lua`, add `"jellyfin_top_menu_tab"` to its `["KOMenu:menu_buttons"]` list. Otherwise, your custom menu order may hide the top menu tab even when it is enabled.

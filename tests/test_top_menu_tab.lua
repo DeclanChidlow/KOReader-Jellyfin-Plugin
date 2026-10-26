@@ -1,5 +1,5 @@
--- QuickTab regression tests.
--- Run with: lua tests/test_quicktab.lua
+-- Top menu tab regression tests.
+-- Run with: lua tests/test_top_menu_tab.lua
 
 package.loaded["gettext"] = function(s) return s end
 package.loaded["datastorage"] = {}
@@ -22,35 +22,35 @@ local order = {
 package.loaded["ui/elements/filemanager_menu_order"] = order
 
 local Config = dofile("config.lua")
-local QuickTab = dofile("quicktab.lua")
+local TopMenuTab = dofile("top_menu_tab.lua")
 
 local function makeMenu()
 	return {
 		filemanager_settings = {},
 		jellyfin = {
 			sub_item_table = {
-				{ text = "Configure Server" },
 				{ text = "Browse Books" },
+				{ text = "Configure Server" },
 			},
 		},
 	}
 end
 
 Config:initialize()
-assert(Config:getQuickTabEnabled() == false, "QuickTab should be disabled by default")
+assert(Config:getTopMenuTabEnabled() == false, "Top menu tab should be disabled by default")
 
 local menu = makeMenu()
-QuickTab.addToMainMenu(menu, Config)
-assert(menu.jellyfin_quicktab == nil, "QuickTab should not be added when disabled")
+TopMenuTab.addToMainMenu(menu, Config)
+assert(menu.jellyfin_top_menu_tab == nil, "Top menu tab should not be added when disabled")
 
-Config:setQuickTabEnabled(true)
+Config:setTopMenuTabEnabled(true)
 menu = makeMenu()
-QuickTab.addToMainMenu(menu, Config)
+TopMenuTab.addToMainMenu(menu, Config)
 
-assert(menu.jellyfin_quicktab, "QuickTab should be added when enabled")
-assert(#order.jellyfin_quicktab == 2, "QuickTab should contain every Jellyfin action")
-assert(menu[order.jellyfin_quicktab[1]].text == "Browse Books",
+assert(menu.jellyfin_top_menu_tab, "Top menu tab should be added when enabled")
+assert(#order.jellyfin_top_menu_tab == 2, "Top menu tab should contain every Jellyfin action")
+assert(menu[order.jellyfin_top_menu_tab[1]].text == "Browse Books",
 	"Browse Books should come first")
 assert(#menu.jellyfin.sub_item_table == 2, "Original Jellyfin menu should be unchanged")
 
-print("All QuickTab tests passed.")
+print("All top menu tab tests passed.")

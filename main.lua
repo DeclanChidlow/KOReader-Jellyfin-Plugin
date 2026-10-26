@@ -9,7 +9,7 @@ local _ = require("gettext")
 local T = FFIUtil.template
 
 local Config = require("config")
-local QuickTab = require("quicktab")
+local TopMenuTab = require("top_menu_tab")
 local API = require("api")
 local Auth = require("auth")
 local UI = require("ui")
@@ -23,7 +23,7 @@ function Jellyfin:init()
 	logger.info("Jellyfin: Initialising plugin")
 
 	Config:initialize()
-	self.quicktab_icon_available = QuickTab.installIcon()
+	self.top_menu_tab_icon_available = TopMenuTab.installIcon()
 	self.api = API:new(Config)
 	self.auth = Auth:new(Config, self.api)
 	self.ui_handler = UI:new(Config, self.api)
@@ -285,30 +285,6 @@ function Jellyfin:addToMainMenu(menu_items)
 		sorting_hint = "tools",
 		sub_item_table = {
 			{
-				text = _("Configure Server"),
-				keep_menu_open = true,
-				callback = function()
-					self.ui_handler:configureServer()
-				end,
-			},
-			{
-				text = _("Login"),
-				sub_item_table = {
-					{
-						text = _("Login with Password"),
-						callback = function()
-							self.auth:loginWithPassword()
-						end,
-					},
-					{
-						text = _("Login with Quick Connect"),
-						callback = function()
-							self.auth:loginWithQuickConnect()
-						end,
-					},
-				},
-			},
-			{
 				text = _("Browse Books"),
 				enabled_func = function()
 					return Config:isLoggedIn()
@@ -340,6 +316,47 @@ function Jellyfin:addToMainMenu(menu_items)
 				end,
 			},
 			{
+				text = _("Show plugin on top menu"),
+				checked_func = function()
+					return Config:getTopMenuTabEnabled()
+				end,
+				keep_menu_open = true,
+				separator = true,
+				callback = function()
+					local enabled = not Config:getTopMenuTabEnabled()
+					Config:setTopMenuTabEnabled(enabled)
+
+					-- Only prompt when the setting no longer matches the menu state.
+					if TopMenuTab.active ~= nil and enabled ~= TopMenuTab.active then
+						UIManager:askForRestart(_("KOReader must restart to toggle the top menu tab."))
+					end
+				end,
+			},
+			{
+				text = _("Configure Server"),
+				keep_menu_open = true,
+				callback = function()
+					self.ui_handler:configureServer()
+				end,
+			},
+			{
+				text = _("Login"),
+				sub_item_table = {
+					{
+						text = _("Login with Password"),
+						callback = function()
+							self.auth:loginWithPassword()
+						end,
+					},
+					{
+						text = _("Login with Quick Connect"),
+						callback = function()
+							self.auth:loginWithQuickConnect()
+						end,
+					},
+				},
+			},
+			{
 				text = _("Logout"),
 				enabled_func = function()
 					return Config:isLoggedIn()
@@ -348,25 +365,9 @@ function Jellyfin:addToMainMenu(menu_items)
 					self.auth:logout()
 				end,
 			},
-			{
-				text = _("Show plugin on top menu"),
-				checked_func = function()
-					return Config:getQuickTabEnabled()
-				end,
-				keep_menu_open = true,
-				callback = function()
-					local enabled = not Config:getQuickTabEnabled()
-					Config:setQuickTabEnabled(enabled)
-
-					-- Only prompt when the setting no longer matches the menu state.
-					if QuickTab.active ~= nil and enabled ~= QuickTab.active then
-						UIManager:askForRestart(_("KOReader must restart to toggle the top menu tab."))
-					end
-				end,
-			},
 		},
 	}
-	QuickTab.addToMainMenu(menu_items, Config, self.quicktab_icon_available)
+	TopMenuTab.addToMainMenu(menu_items, Config, self.top_menu_tab_icon_available)
 end
 
 return Jellyfin

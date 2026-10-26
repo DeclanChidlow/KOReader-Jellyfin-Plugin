@@ -1,12 +1,10 @@
-local gettext = require("gettext")
-
-local QuickTab = {
+local TopMenuTab = {
     -- Whether the tab is registered in the running file manager menu.
     -- nil until that menu has been built.
     active = nil,
 }
 
-function QuickTab.installIcon()
+function TopMenuTab.installIcon()
     local DataStorage = require("datastorage")
     local lfs = require("libs/libkoreader-lfs")
 
@@ -17,9 +15,9 @@ function QuickTab.installIcon()
         return false
     end
 
-    local source_file = plugin_dir .. "icons/jellyfin-quicktab.svg"
+    local source_file = plugin_dir .. "icons/jellyfin-top-menu-tab.svg"
     local target_dir = DataStorage:getDataDir() .. "/icons"
-    local target_file = target_dir .. "/jellyfin-quicktab.svg"
+    local target_file = target_dir .. "/jellyfin-top-menu-tab.svg"
 
     local input = io.open(source_file, "rb")
     if not input then
@@ -72,14 +70,14 @@ function QuickTab.installIcon()
     return true
 end
 
-function QuickTab.addToMainMenu(items, config, icon_available)
-    -- Only show QuickTab in the file manager when enabled.
+function TopMenuTab.addToMainMenu(items, config, icon_available)
+    -- Only show the top menu tab in the file manager when enabled.
     if not items.filemanager_settings then
         return
     end
 
-    if not config:getQuickTabEnabled() then
-        QuickTab.active = false
+    if not config:getTopMenuTabEnabled() then
+        TopMenuTab.active = false
         return
     end
 
@@ -97,7 +95,7 @@ function QuickTab.addToMainMenu(items, config, icon_available)
     local ids = {}
 
     local function addItem(item)
-        local id = "jellyfin_quicktab_item_" .. (#ids + 1)
+        local id = "jellyfin_top_menu_tab_item_" .. (#ids + 1)
         local copy = {}
         for key, value in pairs(item) do
             copy[key] = value
@@ -106,34 +104,24 @@ function QuickTab.addToMainMenu(items, config, icon_available)
         table.insert(ids, id)
     end
 
-    -- Show Browse Books first.
+    -- Mirror the order of the Tools → Jellyfin menu.
     for _, item in ipairs(jellyfin.sub_item_table) do
-        if item.text == gettext("Browse Books") then
-            addItem(item)
-            break
-        end
+        addItem(item)
     end
 
-    -- Followed by the remaining Jellyfin menu items.
-    for _, item in ipairs(jellyfin.sub_item_table) do
-        if item.text ~= gettext("Browse Books") then
-            addItem(item)
-        end
-    end
-
-    items.jellyfin_quicktab = {
-         icon = icon_available and "jellyfin-quicktab" or "appbar.tools",
+    items.jellyfin_top_menu_tab = {
+         icon = icon_available and "jellyfin-top-menu-tab" or "appbar.tools",
     }
-    order.jellyfin_quicktab = ids
-    QuickTab.active = true
+    order.jellyfin_top_menu_tab = ids
+    TopMenuTab.active = true
 
     for _, id in ipairs(buttons) do
-        if id == "jellyfin_quicktab" then
+        if id == "jellyfin_top_menu_tab" then
             return
         end
     end
 
-    table.insert(buttons, 4, "jellyfin_quicktab")
+    table.insert(buttons, 4, "jellyfin_top_menu_tab")
 end
 
-return QuickTab
+return TopMenuTab
