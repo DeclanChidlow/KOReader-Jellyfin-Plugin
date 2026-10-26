@@ -47,3 +47,13 @@ This plugin isn't endorsed by Jellyfin or KOReader.
 4. Select 'Download' to download the book.
 
 You can configure the download location in the plugin's menu.
+
+### Top Menu Tab
+
+You can add the plugin as a tab in the top menu for quick access.
+
+1. Open **Tools → Jellyfin**.
+2. Tick **Show plugin on top menu**.
+3. Choose **Restart now** when prompted.
+
+**Custom menu layouts:** If you use a custom `filemanager_menu_order.lua`, add `"jellyfin_top_menu_tab"` to its `["KOMenu:menu_buttons"]` list. Otherwise, your custom menu order may hide the top menu tab even when it is enabled.
