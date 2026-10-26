@@ -186,6 +186,27 @@ local function bookItemMandatory(book)
 	return nil
 end
 
+local function isFolderItem(item)
+	return item.IsFolder == true
+		or item.Type == "Folder"
+		or item.Type == "CollectionFolder"
+end
+
+local function splitFolderItems(items)
+	local books = {}
+	local folders = {}
+
+	for _, item in ipairs(items or {}) do
+		if isFolderItem(item) then
+			table.insert(folders, item)
+		else
+			table.insert(books, item)
+		end
+	end
+
+	return books, folders
+end
+
 local function bookInfoText(book)
 	local lines = {}
 
@@ -366,7 +387,13 @@ function UI:new(config, api)
 		api = api,
 		current_libraries = nil,
 		current_books = nil,
+		current_folders = nil,
+		current_folder_id = nil,
+		current_folder_name = nil,
 		current_library_name = nil,
+		library_root_id = nil,
+		library_root_name = nil,
+		folder_stack = nil,
 		books_menu = nil,
 		books_item_table = nil,
 		options_menu = nil,
@@ -594,30 +621,162 @@ function UI:showLibrariesMenu(libraries)
 	UIManager:show(menu)
 end
 
+function UI:getFolderItems(folder_id)
+	if self.api.getItemsInFolder then
+		return self.api:getItemsInFolder(folder_id)
+	end
+	return self.api:getItemsInLibrary(folder_id)
+end
+
+function UI:getLibraryItems(library_id)
+	if self.api.getItemsInLibrary then
+		return self.api:getItemsInLibrary(library_id)
+	end
+	return self.api:getItemsInFolder(library_id)
+end
+
 function UI:showBooksInLibrary(library_id, library_name)
 	logger.info("Jellyfin: showBooksInLibrary called with ID:", library_id, "Name:", library_name)
+
+	self.library_root_id = library_id
+	self.library_root_name = library_name
 
 	UIManager:show(InfoMessage:new {
 		text = _("Loading books..."),
 		timeout = 1,
 	})
 
-	local success, result = self.api:getItemsInLibrary(library_id)
+	local folder_view = self.config.getFolderViewEnabled and self.config:getFolderViewEnabled()
+	local success, result
+	if folder_view then
+		success, result = self:getFolderItems(library_id)
+	else
+		success, result = self:getLibraryItems(library_id)
+	end
 
 	if success then
-		logger.info("Jellyfin: Found", result.TotalRecordCount, "books")
+		local items = result.Items or {}
+		logger.info("Jellyfin: Found", result.TotalRecordCount or #items, "items")
 
-		if result.TotalRecordCount == 0 then
+		if #items == 0 then
 			UIManager:show(InfoMessage:new {
 				text = _("No books found in this library"),
 			})
 		else
-			self:showBooksMenu(result.Items, library_name)
+			if folder_view then
+				self.folder_stack = {
+					{ id = library_id, name = library_name, items = items },
+				}
+			else
+				self.folder_stack = nil
+			end
+			self:showBooksMenu(items, library_name, library_id)
 		end
 	else
 		logger.err("Jellyfin: Get books failed:", result)
 		self:handleApiError(result, _("Failed to load books"))
 	end
+end
+
+function UI:setCurrentFolder(entry)
+	self.current_folder_id = entry.id
+	self.current_folder_name = entry.name
+	self.current_books, self.current_folders = splitFolderItems(entry.items)
+end
+
+function UI:syncFolderStackPaths()
+	if not self.books_menu then
+		return
+	end
+
+	-- Menu uses #paths to decide whether the return arrow is enabled.
+	self.books_menu.paths = {}
+	for _ = 2, #(self.folder_stack or {}) do
+		table.insert(self.books_menu.paths, {})
+	end
+end
+
+function UI:showFolderEntry(entry)
+	if self.books_menu then
+		self:setCurrentFolder(entry)
+		self:syncFolderStackPaths()
+		self.books_menu:switchItemTable(entry.name, self:buildBookMenuItemTable())
+		self.books_item_table = self.books_menu.item_table
+		self:updateBooksMenuSubtitle()
+	else
+		self:showBooksMenu(entry.items, entry.name, entry.id)
+	end
+end
+
+function UI:openFolder(folder)
+	logger.info("Jellyfin: Opening folder:", folder.Name, "ID:", folder.Id)
+
+	UIManager:show(InfoMessage:new {
+		text = _("Loading folder..."),
+		timeout = 1,
+	})
+
+	local success, result = self:getFolderItems(folder.Id)
+
+	if success then
+		local items = result.Items or {}
+		logger.info("Jellyfin: Found", result.TotalRecordCount or #items, "items in folder", folder.Name)
+
+		if #items == 0 then
+			UIManager:show(InfoMessage:new {
+				text = _("This folder is empty"),
+			})
+			return
+		end
+
+		local entry = { id = folder.Id, name = folder.Name, items = items }
+		self.folder_stack = self.folder_stack or {}
+		table.insert(self.folder_stack, entry)
+		self:showFolderEntry(entry)
+	else
+		logger.err("Jellyfin: Get folder failed:", result)
+		self:handleApiError(result, _("Failed to load folder"))
+	end
+end
+
+function UI:showParentFolder()
+	if not self.folder_stack or #self.folder_stack <= 1 then
+		return true
+	end
+
+	table.remove(self.folder_stack)
+	local entry = self.folder_stack[#self.folder_stack]
+	logger.info("Jellyfin: Returning to folder:", entry.name)
+	self:showFolderEntry(entry)
+	return true
+end
+
+function UI:toggleFolderView()
+	self.config:setFolderViewEnabled(not self.config:getFolderViewEnabled())
+
+	local library_id = self.library_root_id
+	local library_name = self.library_root_name
+	if not library_id then
+		self:refreshOptionsMenu()
+		return
+	end
+
+	-- The new view mode needs a fresh fetch and a new menu.
+	local options_menu = self.options_menu
+	local books_menu = self.books_menu
+	self.options_menu = nil
+	self.options_item_table = nil
+	self.books_menu = nil
+	self.books_item_table = nil
+
+	if options_menu then
+		UIManager:close(options_menu)
+	end
+	if books_menu then
+		UIManager:close(books_menu)
+	end
+
+	self:showBooksInLibrary(library_id, library_name)
 end
 
 local function replaceTableContents(target, source)
@@ -643,19 +802,24 @@ function UI:updateBooksMenuSubtitle()
 	self.books_menu.title_bar:setSubTitle(self:bookOptionsSummary())
 end
 
-function UI:showBooksMenu(books, library_name)
-	self.current_books = books
-	self.current_library_name = library_name
+function UI:showBooksMenu(items, folder_name, folder_id)
+	self.current_library_name = folder_name
+	self.current_folder_id = folder_id
+	self.current_folder_name = folder_name
+	self.current_books, self.current_folders = splitFolderItems(items)
 
 	local menu
 	menu = Menu:new {
-		title = library_name,
+		title = folder_name,
 		subtitle = self:bookOptionsSummary(),
 		title_bar_left_icon = "appbar.tools",
 		item_table = self:buildBookMenuItemTable(),
 		is_borderless = true,
 		is_popout = false,
 		title_bar_fm_style = true,
+		onReturn = function()
+			self:showParentFolder()
+		end,
 	}
 	self.books_item_table = menu.item_table
 
@@ -665,13 +829,19 @@ function UI:showBooksMenu(books, library_name)
 
 	local original_on_close_widget = menu.onCloseWidget
 	menu.onCloseWidget = function(menu_self)
-		self.books_menu = nil
+		if self.books_menu == menu_self then
+			self.books_menu = nil
+		end
 		if original_on_close_widget then
 			original_on_close_widget(menu_self)
 		end
 	end
 
 	self.books_menu = menu
+	self:syncFolderStackPaths()
+	if #menu.paths > 0 then
+		menu:updateItems()
+	end
 	UIManager:show(menu)
 end
 
@@ -769,6 +939,16 @@ function UI:buildBookOptionsMenuItemTable()
 		sub_item_table = filter_items,
 	})
 
+	table.insert(items, {
+		text = _("Folder view"),
+		mandatory_func = function()
+			return self.config:getFolderViewEnabled() and "✓" or nil
+		end,
+		callback = function()
+			self:toggleFolderView()
+		end,
+	})
+
 	return items
 end
 
@@ -781,13 +961,25 @@ function UI:refreshOptionsMenu()
 end
 
 function UI:buildBookMenuItemTable()
+	local folders = sortBooks(self.current_folders or {}, "title", "asc")
 	local visible_books = sortBooks(
-		filterBooks(self.current_books, self.config:getBookFilter()),
+		filterBooks(self.current_books or {}, self.config:getBookFilter()),
 		self.config:getBookSort(),
 		self.config:getBookSortOrder()
 	)
 
 	local items = {}
+
+	for _, folder in ipairs(folders) do
+		table.insert(items, {
+			text = folder.Name,
+			mandatory = "▸",
+			mandatory_dim = true,
+			callback = function()
+				self:openFolder(folder)
+			end,
+		})
+	end
 
 	for _, book in ipairs(visible_books) do
 		table.insert(items, {
@@ -800,7 +992,7 @@ function UI:buildBookMenuItemTable()
 		})
 	end
 
-	if #visible_books == 0 then
+	if #folders == 0 and #visible_books == 0 then
 		table.insert(items, {
 			text = _("No books match the current filter"),
 			dim = true,

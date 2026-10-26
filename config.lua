@@ -69,6 +69,14 @@ function Config:setTopMenuTabEnabled(enabled)
 	G_reader_settings:saveSetting("jellyfin_top_menu_tab_enabled", enabled)
 end
 
+function Config:getFolderViewEnabled()
+	return G_reader_settings:isTrue("jellyfin_folder_view_enabled")
+end
+
+function Config:setFolderViewEnabled(enabled)
+	G_reader_settings:saveSetting("jellyfin_folder_view_enabled", enabled)
+end
+
 function Config:getDownloadDir()
 	local dir = G_reader_settings:readSetting("jellyfin_download_dir")
 	if not dir or dir == "" then
@@ -134,6 +142,9 @@ function Config:initialize()
 	end
 	if not G_reader_settings:has("jellyfin_top_menu_tab_enabled") then
 		G_reader_settings:saveSetting("jellyfin_top_menu_tab_enabled", false)
+	end
+	if not G_reader_settings:has("jellyfin_folder_view_enabled") then
+		G_reader_settings:saveSetting("jellyfin_folder_view_enabled", false)
 	end
 	if not G_reader_settings:has("jellyfin_book_sort") then
 		G_reader_settings:saveSetting("jellyfin_book_sort", "title")

@@ -162,12 +162,12 @@ function API:getUserViews()
 	end
 end
 
-function API:getItemsInLibrary(library_id)
+function API:getItems(parent_id, recursive, include_types)
 	local items_url = self.config:getServerUrl() .. "/Users/" .. self.config:getUserId() .. "/Items" ..
-		"?ParentId=" .. library_id ..
-		"&Recursive=true" ..
+		"?ParentId=" .. parent_id ..
+		"&Recursive=" .. (recursive and "true" or "false") ..
 		"&Fields=Path,MediaSources,People,Genres,Overview,DateCreated" ..
-		"&IncludeItemTypes=Book"
+		"&IncludeItemTypes=" .. include_types
 
 	logger.info("Jellyfin API: Fetching items from:", items_url)
 	local response_body = {}
@@ -193,6 +193,14 @@ function API:getItemsInLibrary(library_id)
 	else
 		return false, code
 	end
+end
+
+function API:getItemsInFolder(folder_id)
+	return self:getItems(folder_id, false, "Book,Folder")
+end
+
+function API:getItemsInLibrary(library_id)
+	return self:getItems(library_id, true, "Book")
 end
 
 function API:downloadBookCover(item_id, filepath)

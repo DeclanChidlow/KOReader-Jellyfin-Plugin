@@ -21,7 +21,7 @@ This plugin isn't endorsed by Jellyfin or KOReader.
 
 - **Server Configuration**: Connect to your own Jellyfin server.
 - **Authentication**: Login with username and password or via Quick Connect.
-- **Browse Books**: View all books in your Jellyfin libraries. Filter, sort, and view details of your books before you read them.
+- **Browse Books**: Browse all the books in your Jellyfin libraries. Filter, sort, and view details of your books before you read them.
 - **Download Books**: Download books directly to your device.
 - **Progress Syncing**: Your progress will sync between KOReader and your Jellyfin server.
 
