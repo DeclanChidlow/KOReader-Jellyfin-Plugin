@@ -31,6 +31,10 @@ local T = FFIUtil.template
 
 local Screen = Device.screen
 
+-- Menu rows reserve space for the title next to the mandatory text.
+-- Keep this short so a long author list cannot make the title's width zero or negative causing 'width must be strictly positive' crash.
+local MANDATORY_MAX_CHARS = 30
+
 local SORT_ORDER = { "title", "author", "series", "year", "date_added" }
 local SORT_LABELS = {
 	title = _("Title"),
@@ -155,6 +159,15 @@ local function bookItemText(book)
 	return text
 end
 
+local function truncateText(text, max_chars)
+	local chars = util.splitToChars(text)
+	if #chars > max_chars then
+		local truncated = table.concat(chars, "", 1, max_chars - 1)
+		return truncated:gsub("%s+$", "") .. "…"
+	end
+	return text
+end
+
 local function bookItemMandatory(book)
 	local parts = {}
 
@@ -168,7 +181,7 @@ local function bookItemMandatory(book)
 	end
 
 	if #parts > 0 then
-		return table.concat(parts, " · ")
+		return truncateText(table.concat(parts, " · "), MANDATORY_MAX_CHARS)
 	end
 	return nil
 end
