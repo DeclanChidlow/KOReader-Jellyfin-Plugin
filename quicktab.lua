@@ -1,6 +1,10 @@
 local gettext = require("gettext")
 
-local QuickTab = {}
+local QuickTab = {
+    -- Whether the tab is registered in the running file manager menu.
+    -- nil until that menu has been built.
+    active = nil,
+}
 
 function QuickTab.installIcon()
     local DataStorage = require("datastorage")
@@ -70,8 +74,12 @@ end
 
 function QuickTab.addToMainMenu(items, config, icon_available)
     -- Only show QuickTab in the file manager when enabled.
-    if not items.filemanager_settings or
-       not config:getQuickTabEnabled() then
+    if not items.filemanager_settings then
+        return
+    end
+
+    if not config:getQuickTabEnabled() then
+        QuickTab.active = false
         return
     end
 
@@ -117,6 +125,7 @@ function QuickTab.addToMainMenu(items, config, icon_available)
          icon = icon_available and "jellyfin-quicktab" or "appbar.tools",
     }
     order.jellyfin_quicktab = ids
+    QuickTab.active = true
 
     for _, id in ipairs(buttons) do
         if id == "jellyfin_quicktab" then

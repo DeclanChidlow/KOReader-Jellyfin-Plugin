@@ -349,13 +349,19 @@ function Jellyfin:addToMainMenu(menu_items)
 				end,
 			},
 			{
-				text = _("Enable Jellyfin QuickTab (restart required)"),
+				text = _("Show plugin on top menu"),
 				checked_func = function()
 					return Config:getQuickTabEnabled()
 				end,
 				keep_menu_open = true,
 				callback = function()
-					Config:setQuickTabEnabled(not Config:getQuickTabEnabled())
+					local enabled = not Config:getQuickTabEnabled()
+					Config:setQuickTabEnabled(enabled)
+
+					-- Only prompt when the setting no longer matches the menu state.
+					if QuickTab.active ~= nil and enabled ~= QuickTab.active then
+						UIManager:askForRestart(_("KOReader must restart to toggle the top menu tab."))
+					end
 				end,
 			},
 		},
