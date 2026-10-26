@@ -31,12 +31,13 @@ local T = FFIUtil.template
 
 local Screen = Device.screen
 
-local SORT_ORDER = { "title", "author", "series", "year" }
+local SORT_ORDER = { "title", "author", "series", "year", "date_added" }
 local SORT_LABELS = {
 	title = _("Title"),
 	author = _("Author"),
 	series = _("Series"),
 	year = _("Year"),
+	date_added = _("Date added"),
 }
 
 local FILTER_ORDER = { "all", "unread", "reading", "read" }
@@ -102,6 +103,9 @@ local function sortBooks(books, sort_key, sort_order)
 		end,
 		year = function(a, b)
 			return (a.ProductionYear or 0) < (b.ProductionYear or 0)
+		end,
+		date_added = function(a, b)
+			return (a.DateCreated or "") < (b.DateCreated or "")
 		end,
 	}
 

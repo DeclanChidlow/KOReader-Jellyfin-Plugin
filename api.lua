@@ -166,7 +166,7 @@ function API:getItemsInLibrary(library_id)
 	local items_url = self.config:getServerUrl() .. "/Users/" .. self.config:getUserId() .. "/Items" ..
 		"?ParentId=" .. library_id ..
 		"&Recursive=true" ..
-		"&Fields=Path,MediaSources,People,Genres,Overview" ..
+		"&Fields=Path,MediaSources,People,Genres,Overview,DateCreated" ..
 		"&IncludeItemTypes=Book"
 
 	logger.info("Jellyfin API: Fetching items from:", items_url)
