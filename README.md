@@ -36,8 +36,8 @@ This plugin isn't endorsed by Jellyfin or KOReader.
 ### Login
 
 1. Navigate to tools (🛠️) in KOReader, then find and open 'Jellyfin'. It might be on the second page.
-2. Select 'Configure Server', enter your server address (with protocol), and press 'Save'.
-3. Select 'Login' and authenticate via either username and password or Quick Connect.
+2. Select 'Login' → 'Configure Server', enter your server address (with protocol), and press 'Save'.
+3. Return to 'Login' and authenticate via either username and password or Quick Connect.
 
 ### Browse and Download Books
 

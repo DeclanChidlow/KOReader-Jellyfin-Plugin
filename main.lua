@@ -25,7 +25,9 @@ function Jellyfin:init()
 	Config:initialize()
 	self.top_menu_tab_icon_available = TopMenuTab.installIcon()
 	self.api = API:new(Config)
-	self.auth = Auth:new(Config, self.api)
+	self.auth = Auth:new(Config, self.api, function()
+		self:syncTopMenuTab()
+	end)
 	self.ui_handler = UI:new(Config, self.api)
 	self.progress_push_task = function()
 		self:pushProgress()
@@ -277,95 +279,141 @@ function Jellyfin:onReaderReady()
 	})
 end
 
+function Jellyfin:syncTopMenuTab()
+	local menu = self.ui and self.ui.menu
+	if not menu or not menu.tab_item_table then
+		return
+	end
+
+	local jellyfin_tab
+	for _, tab in ipairs(menu.tab_item_table) do
+		if type(tab) == "table" and tab.id == "jellyfin_top_menu_tab" then
+			jellyfin_tab = tab
+			break
+		end
+	end
+	if not jellyfin_tab then
+		return
+	end
+
+	local logout_index
+	for index, item in ipairs(jellyfin_tab) do
+		if type(item) == "table" and item.text == _("Logout") then
+			logout_index = index
+			break
+		end
+	end
+
+	if Config:isLoggedIn() then
+		if not logout_index then
+			table.insert(jellyfin_tab, self:buildLogoutItem())
+		end
+	elseif logout_index then
+		table.remove(jellyfin_tab, logout_index)
+	end
+end
+
+function Jellyfin:buildLogoutItem()
+	return {
+		text = _("Logout"),
+		callback = function()
+			self.auth:logout()
+		end,
+	}
+end
+
+function Jellyfin:buildMenuItems()
+	local items = {
+		{
+			text = _("Browse Books"),
+			enabled_func = function()
+				return Config:isLoggedIn()
+			end,
+			callback = function()
+				self.ui_handler:browseBooks()
+			end,
+		},
+		{
+			text = _("Sync reading progress"),
+			enabled_func = function()
+				return Config:isLoggedIn()
+			end,
+			checked_func = function()
+				return Config:getSyncEnabled()
+			end,
+			keep_menu_open = true,
+			callback = function()
+				Config:setSyncEnabled(not Config:getSyncEnabled())
+			end,
+		},
+		{
+			text_func = function()
+				return T(_("Download folder: %1"), Config:getDownloadDir())
+			end,
+			keep_menu_open = true,
+			callback = function()
+				self.ui_handler:configureDownloadDir()
+			end,
+		},
+		{
+			text = _("Show plugin on top menu"),
+			checked_func = function()
+				return Config:getTopMenuTabEnabled()
+			end,
+			keep_menu_open = true,
+			separator = true,
+			callback = function()
+				local enabled = not Config:getTopMenuTabEnabled()
+				Config:setTopMenuTabEnabled(enabled)
+
+				-- Only prompt when the setting no longer matches the menu state.
+				if TopMenuTab.active ~= nil and enabled ~= TopMenuTab.active then
+					UIManager:askForRestart(_("KOReader must restart to toggle the top menu tab."))
+				end
+			end,
+		},
+		{
+			text = _("Login"),
+			sub_item_table = {
+				{
+					text = _("Configure Server"),
+					keep_menu_open = true,
+					callback = function()
+						self.ui_handler:configureServer()
+					end,
+				},
+				{
+					text = _("Login with Password"),
+					callback = function()
+						self.auth:loginWithPassword()
+					end,
+				},
+				{
+					text = _("Login with Quick Connect"),
+					callback = function()
+						self.auth:loginWithQuickConnect()
+					end,
+				},
+			},
+		},
+	}
+
+	if Config:isLoggedIn() then
+		table.insert(items, self:buildLogoutItem())
+	end
+
+	return items
+end
+
 function Jellyfin:addToMainMenu(menu_items)
 	logger.info("Jellyfin: Adding to main menu")
 
 	menu_items.jellyfin = {
 		text = _("Jellyfin"),
 		sorting_hint = "tools",
-		sub_item_table = {
-			{
-				text = _("Browse Books"),
-				enabled_func = function()
-					return Config:isLoggedIn()
-				end,
-				callback = function()
-					self.ui_handler:browseBooks()
-				end,
-			},
-			{
-				text = _("Sync reading progress"),
-				enabled_func = function()
-					return Config:isLoggedIn()
-				end,
-				checked_func = function()
-					return Config:getSyncEnabled()
-				end,
-				keep_menu_open = true,
-				callback = function()
-					Config:setSyncEnabled(not Config:getSyncEnabled())
-				end,
-			},
-			{
-				text_func = function()
-					return T(_("Download folder: %1"), Config:getDownloadDir())
-				end,
-				keep_menu_open = true,
-				callback = function()
-					self.ui_handler:configureDownloadDir()
-				end,
-			},
-			{
-				text = _("Show plugin on top menu"),
-				checked_func = function()
-					return Config:getTopMenuTabEnabled()
-				end,
-				keep_menu_open = true,
-				separator = true,
-				callback = function()
-					local enabled = not Config:getTopMenuTabEnabled()
-					Config:setTopMenuTabEnabled(enabled)
-
-					-- Only prompt when the setting no longer matches the menu state.
-					if TopMenuTab.active ~= nil and enabled ~= TopMenuTab.active then
-						UIManager:askForRestart(_("KOReader must restart to toggle the top menu tab."))
-					end
-				end,
-			},
-			{
-				text = _("Configure Server"),
-				keep_menu_open = true,
-				callback = function()
-					self.ui_handler:configureServer()
-				end,
-			},
-			{
-				text = _("Login"),
-				sub_item_table = {
-					{
-						text = _("Login with Password"),
-						callback = function()
-							self.auth:loginWithPassword()
-						end,
-					},
-					{
-						text = _("Login with Quick Connect"),
-						callback = function()
-							self.auth:loginWithQuickConnect()
-						end,
-					},
-				},
-			},
-			{
-				text = _("Logout"),
-				enabled_func = function()
-					return Config:isLoggedIn()
-				end,
-				callback = function()
-					self.auth:logout()
-				end,
-			},
-		},
+		sub_item_table_func = function()
+			return self:buildMenuItems()
+		end,
 	}
 	TopMenuTab.addToMainMenu(menu_items, Config, self.top_menu_tab_icon_available)
 end

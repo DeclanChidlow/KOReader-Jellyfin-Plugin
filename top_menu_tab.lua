@@ -82,7 +82,13 @@ function TopMenuTab.addToMainMenu(items, config, icon_available)
 	end
 
 	local jellyfin = items.jellyfin
-	if not jellyfin or not jellyfin.sub_item_table then
+	if not jellyfin then
+		return
+	end
+
+	local jellyfin_items = jellyfin.sub_item_table_func and jellyfin.sub_item_table_func()
+		or jellyfin.sub_item_table
+	if not jellyfin_items then
 		return
 	end
 
@@ -105,7 +111,7 @@ function TopMenuTab.addToMainMenu(items, config, icon_available)
 	end
 
 	-- Mirror the order of the Tools → Jellyfin menu.
-	for _, item in ipairs(jellyfin.sub_item_table) do
+	for _, item in ipairs(jellyfin_items) do
 		addItem(item)
 	end
 

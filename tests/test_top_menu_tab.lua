@@ -53,4 +53,24 @@ assert(menu[order.jellyfin_top_menu_tab[1]].text == "Browse Books",
 	"Browse Books should come first")
 assert(#menu.jellyfin.sub_item_table == 2, "Original Jellyfin menu should be unchanged")
 
+menu = {
+	filemanager_settings = {},
+	jellyfin = {
+		sub_item_table_func = function()
+			return {
+				{ text = "Browse Books" },
+				{ text = "Login" },
+			}
+		end,
+	},
+}
+TopMenuTab.addToMainMenu(menu, Config)
+
+assert(menu.jellyfin_top_menu_tab, "Top menu tab should support a dynamic Jellyfin menu")
+assert(#order.jellyfin_top_menu_tab == 2, "Top menu tab should mirror dynamic Jellyfin actions")
+assert(menu[order.jellyfin_top_menu_tab[1]].text == "Browse Books",
+	"Dynamic actions should keep their order")
+assert(menu[order.jellyfin_top_menu_tab[2]].text == "Login",
+	"Dynamic Login action should be mirrored")
+
 print("All top menu tab tests passed.")

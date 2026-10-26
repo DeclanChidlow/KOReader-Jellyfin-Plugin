@@ -10,14 +10,21 @@ local T = FFIUtil.template
 
 local Auth = {}
 
-function Auth:new(config, api)
+function Auth:new(config, api, on_auth_changed)
 	local o = {
 		config = config,
-		api = api
+		api = api,
+		on_auth_changed = on_auth_changed,
 	}
 	setmetatable(o, self)
 	self.__index = self
 	return o
+end
+
+function Auth:notifyAuthChanged()
+	if self.on_auth_changed then
+		self.on_auth_changed()
+	end
 end
 
 function Auth:loginWithPassword()
@@ -80,6 +87,7 @@ function Auth:performPasswordLogin(username, password)
 		self.config:setAccessToken(result.AccessToken)
 		self.config:setUserId(result.User.Id)
 		G_reader_settings:flush()
+		self:notifyAuthChanged()
 
 		logger.info("Jellyfin Auth: Logged in successfully, token saved")
 
@@ -180,6 +188,7 @@ function Auth:completeQuickConnect(secret)
 		self.config:setAccessToken(result.AccessToken)
 		self.config:setUserId(result.User.Id)
 		G_reader_settings:flush()
+		self:notifyAuthChanged()
 
 		logger.info("Jellyfin Auth: Quick Connect authentication successful, token saved")
 
@@ -196,6 +205,7 @@ end
 
 function Auth:logout()
 	self.config:clearAuth()
+	self:notifyAuthChanged()
 
 	UIManager:show(InfoMessage:new {
 		text = _("Logged out successfully"),
