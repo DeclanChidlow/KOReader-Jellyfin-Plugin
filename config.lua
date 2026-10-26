@@ -62,11 +62,11 @@ function Config:setSyncEnabled(enabled)
 end
 
 function Config:getTopMenuTabEnabled()
-    return G_reader_settings:isTrue("jellyfin_top_menu_tab_enabled")
+	return G_reader_settings:isTrue("jellyfin_top_menu_tab_enabled")
 end
 
 function Config:setTopMenuTabEnabled(enabled)
-    G_reader_settings:saveSetting("jellyfin_top_menu_tab_enabled", enabled)
+	G_reader_settings:saveSetting("jellyfin_top_menu_tab_enabled", enabled)
 end
 
 function Config:getDownloadDir()

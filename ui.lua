@@ -236,14 +236,14 @@ local function bookOverviewText(book)
 	return overview
 end
 
-local BookActionsDialog = InputContainer:extend{}
+local BookActionsDialog = InputContainer:extend {}
 
 function BookActionsDialog:init()
 	self.ges_events = {
 		TapClose = {
-			GestureRange:new{
+			GestureRange:new {
 				ges = "tap",
-				range = Geom:new{
+				range = Geom:new {
 					x = 0, y = 0,
 					w = Screen:getWidth(),
 					h = Screen:getHeight(),
@@ -254,16 +254,16 @@ function BookActionsDialog:init()
 
 	local content_width = self.width - 2 * Size.padding.large
 
-	local content = VerticalGroup:new{
+	local content = VerticalGroup:new {
 		align = "center",
 	}
 
 	if self.cover_path then
-		table.insert(content, FrameContainer:new{
+		table.insert(content, FrameContainer:new {
 			bordersize = Size.border.default,
 			background = Blitbuffer.COLOR_WHITE,
 			padding = Size.padding.tiny,
-			ImageWidget:new{
+			ImageWidget:new {
 				file = self.cover_path,
 				scale_factor = 0,
 				width = self.cover_width,
@@ -271,10 +271,10 @@ function BookActionsDialog:init()
 				alpha = true,
 			},
 		})
-		table.insert(content, VerticalSpan:new{ width = Size.span.vertical_default })
+		table.insert(content, VerticalSpan:new { width = Size.span.vertical_default })
 	end
 
-	table.insert(content, TextBoxWidget:new{
+	table.insert(content, TextBoxWidget:new {
 		text = self.book_name,
 		face = Font:getFace("cfont", 24),
 		bold = true,
@@ -283,7 +283,7 @@ function BookActionsDialog:init()
 	})
 
 	if self.info_text and self.info_text ~= "" then
-		table.insert(content, TextBoxWidget:new{
+		table.insert(content, TextBoxWidget:new {
 			text = self.info_text,
 			face = Font:getFace("cfont", 18),
 			alignment = "center",
@@ -291,15 +291,15 @@ function BookActionsDialog:init()
 		})
 	end
 
-	table.insert(content, VerticalSpan:new{ width = Size.span.vertical_default })
+	table.insert(content, VerticalSpan:new { width = Size.span.vertical_default })
 
-	table.insert(content, ButtonTable:new{
+	table.insert(content, ButtonTable:new {
 		buttons = self.buttons,
 		width = content_width,
 		show_parent = self,
 	})
 
-	self.frame = FrameContainer:new{
+	self.frame = FrameContainer:new {
 		background = Blitbuffer.COLOR_WHITE,
 		bordersize = Size.border.default,
 		radius = Size.radius.window,
@@ -307,7 +307,7 @@ function BookActionsDialog:init()
 		content,
 	}
 
-	self[1] = CenterContainer:new{
+	self[1] = CenterContainer:new {
 		dimen = Screen:getSize(),
 		self.frame,
 	}
@@ -315,7 +315,7 @@ end
 
 function BookActionsDialog:onShow()
 	UIManager:setDirty(self, function()
-		return "full", Geom:new{
+		return "full", Geom:new {
 			x = 0, y = 0,
 			w = Screen:getWidth(),
 			h = Screen:getHeight(),
@@ -326,7 +326,7 @@ end
 
 function BookActionsDialog:onCloseWidget()
 	UIManager:setDirty(nil, function()
-		return "ui", Geom:new{
+		return "ui", Geom:new {
 			x = 0, y = 0,
 			w = Screen:getWidth(),
 			h = Screen:getHeight(),
@@ -856,7 +856,7 @@ function UI:showBookActions(book)
 				text = _("Description"),
 				callback = function()
 					UIManager:close(dialog)
-					UIManager:show(TextViewer:new{
+					UIManager:show(TextViewer:new {
 						title = book.Name,
 						text = overview,
 					})
@@ -891,7 +891,7 @@ function UI:showBookActions(book)
 		},
 	})
 
-	dialog = BookActionsDialog:new{
+	dialog = BookActionsDialog:new {
 		width = math.floor(Screen:getWidth() * 0.75),
 		cover_path = cover_path,
 		cover_width = Screen:scaleBySize(170),
